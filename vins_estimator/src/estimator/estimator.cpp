@@ -157,7 +157,7 @@ void Estimator::changeSensorType(int use_imu, int use_stereo)
     }
 }
 
-void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1)
+void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1, const sensor_msgs::PointCloud2 &_depth)
 {
     inputImageCnt++;
     map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> featureFrame;
@@ -168,6 +168,11 @@ void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1)
     else
         featureFrame = featureTracker.trackImage(t, _img, _img1);
     //printf("featureTracker time: %f\n", featureTrackerTime.toc());
+
+    if (USE_DEPTH)
+    {
+        pubDepthPointCLoud(processDepth(*this, _depth), t);
+    }
 
     if (SHOW_TRACK)
     {

@@ -14,6 +14,11 @@
 #include <cstring>
 #include <eigen3/Eigen/Dense>
 
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <sensor_msgs/PointCloud2.h>
+
 class Utility
 {
   public:
@@ -117,6 +122,8 @@ class Utility
     }
 
     static Eigen::Matrix3d g2R(const Eigen::Vector3d &g);
+    static sensor_msgs::PointCloud2 cloud2msg(pcl::PointCloud<pcl::PointXYZI> cloud, std::string frame_id);
+    static pcl::PointCloud<pcl::PointXYZI> cloudmsg2cloud(sensor_msgs::PointCloud2 cloudmsg);
 
     template <size_t N>
     struct uint_

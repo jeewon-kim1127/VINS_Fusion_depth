@@ -13,6 +13,7 @@
 #include <mutex>
 #include <std_msgs/Header.h>
 #include <std_msgs/Float32.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <ceres/ceres.h>
 #include <unordered_map>
 #include <queue>
@@ -36,6 +37,10 @@
 #include "../factor/projectionOneFrameTwoCamFactor.h"
 #include "../featureTracker/feature_tracker.h"
 
+#include <pcl/common/io.h>
+#include <pcl/common/transforms.h>
+#include <pcl/point_types.h>
+#include <pcl/PCLPointCloud2.h>
 
 class Estimator
 {
@@ -48,7 +53,7 @@ class Estimator
     void initFirstPose(Eigen::Vector3d p, Eigen::Matrix3d r);
     void inputIMU(double t, const Vector3d &linearAcceleration, const Vector3d &angularVelocity);
     void inputFeature(double t, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &featureFrame);
-    void inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1 = cv::Mat());
+    void inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1 = cv::Mat(), const sensor_msgs::PointCloud2 &_depth=sensor_msgs::PointCloud2());
     void processIMU(double t, double dt, const Vector3d &linear_acceleration, const Vector3d &angular_velocity);
     void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header);
     void processMeasurements();

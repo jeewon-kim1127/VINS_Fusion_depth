@@ -12,23 +12,31 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     nav_msgs
     tf
+    tf2
     cv_bridge
     camera_models
-    image_transport)
+    image_transport
+    pcl_ros
+    pcl_conversions
+    sensor_msgs
+    )
 
 find_package(OpenCV REQUIRED)
+
+find_package( PCL REQUIRED )
 
 # message(WARNING "OpenCV_VERSION: ${OpenCV_VERSION}")
 
 find_package(Ceres REQUIRED)
 
-include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${PCL_LIBRARY_DIRS}
 )
 
 catkin_package()
@@ -50,7 +58,7 @@ add_library(vins_lib
     src/initial/initial_sfm.cpp
     src/initial/initial_ex_rotation.cpp
     src/featureTracker/feature_tracker.cpp)
-target_link_libraries(vins_lib ${catkin_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
+target_link_libraries(vins_lib ${catkin_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${PCL_LIBRARIES})
 
 
 add_executable(vins_node src/rosNodeTest.cpp)

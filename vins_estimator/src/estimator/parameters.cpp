@@ -34,10 +34,11 @@ int ROW, COL;
 double TD;
 int NUM_OF_CAM;
 int STEREO;
+int USE_DEPTH;
 int USE_IMU;
 int MULTIPLE_THREAD;
 map<int, Eigen::Vector3d> pts_gt;
-std::string IMAGE0_TOPIC, IMAGE1_TOPIC;
+std::string IMAGE0_TOPIC, IMAGE1_TOPIC, DEPTH_TOPIC;
 std::string FISHEYE_MASK;
 std::vector<std::string> CAM_NAMES;
 int MAX_CNT;
@@ -81,6 +82,14 @@ void readParameters(std::string config_file)
 
     fsSettings["image0_topic"] >> IMAGE0_TOPIC;
     fsSettings["image1_topic"] >> IMAGE1_TOPIC;
+
+    USE_DEPTH = fsSettings["depth"];
+    
+    if(USE_DEPTH)
+    {
+        fsSettings["depth_topic"] >> DEPTH_TOPIC;
+    }
+    
     MAX_CNT = fsSettings["max_cnt"];
     MIN_DIST = fsSettings["min_dist"];
     F_THRESHOLD = fsSettings["F_threshold"];

@@ -20,3 +20,18 @@ Eigen::Matrix3d Utility::g2R(const Eigen::Vector3d &g)
     // R0 = Utility::ypr2R(Eigen::Vector3d{-90, 0, 0}) * R0;
     return R0;
 }
+
+sensor_msgs::PointCloud2 Utility::cloud2msg(pcl::PointCloud<pcl::PointXYZI> cloud, std::string frame_id = "map")
+{
+    sensor_msgs::PointCloud2 cloud_ROS;
+    pcl::toROSMsg(cloud, cloud_ROS);
+    cloud_ROS.header.frame_id = frame_id;
+    return cloud_ROS;
+}
+
+pcl::PointCloud<pcl::PointXYZI> Utility::cloudmsg2cloud(sensor_msgs::PointCloud2 cloudmsg)
+{
+    pcl::PointCloud<pcl::PointXYZI> cloudresult;
+    pcl::fromROSMsg(cloudmsg,cloudresult);
+    return cloudresult;
+}

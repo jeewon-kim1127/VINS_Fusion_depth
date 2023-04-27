@@ -64,3 +64,7 @@ void pubKeyframe(const Estimator &estimator);
 void pubRelocalization(const Estimator &estimator);
 
 void pubCar(const Estimator & estimator, const std_msgs::Header &header);
+
+sensor_msgs::PointCloud2 processDepth(const Estimator &estimator, const sensor_msgs::PointCloud2 &_depth);
+
+void pubDepthPointCLoud(const sensor_msgs::PointCloud2 &depth_pointcloud, const double t);

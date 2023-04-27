@@ -2,12 +2,14 @@
 
 #common parameters
 #support: 1 imu 1 cam; 1 imu 2 cam: 2 cam; 
+depth: 1
 imu: 1         
 num_of_cam: 2  
 
 imu_topic: "/camera/imu"
 image0_topic: "/camera/infra1/image_rect_raw"
 image1_topic: "/camera/infra2/image_rect_raw"
+depth_topic: "/camera/depth/color/points"
 output_path: "/home/dji/output/"
 
 cam0_calib: "left.yaml"

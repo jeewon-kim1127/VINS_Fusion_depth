@@ -24,6 +24,7 @@ ros::Publisher pub_keyframe_point;
 ros::Publisher pub_extrinsic;
 
 ros::Publisher pub_image_track;
+ros::Publisher pub_depth_track;
 
 CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 static double sum_of_path = 0;
@@ -45,7 +46,7 @@ void registerPub(ros::NodeHandle &n)
     pub_keyframe_point = n.advertise<sensor_msgs::PointCloud>("keyframe_point", 1000);
     pub_extrinsic = n.advertise<nav_msgs::Odometry>("extrinsic", 1000);
     pub_image_track = n.advertise<sensor_msgs::Image>("image_track", 1000);
-
+    pub_depth_track = n.advertise<sensor_msgs::PointCloud2>("depth_track", 1000);
     cameraposevisual.setScale(0.1);
     cameraposevisual.setLineWidth(0.01);
 }
@@ -411,4 +412,39 @@ void pubKeyframe(const Estimator &estimator)
         }
         pub_keyframe_point.publish(point_cloud);
     }
+}
+
+sensor_msgs::PointCloud2 processDepth(const Estimator &estimator, const sensor_msgs::PointCloud2 &_depth)
+{
+    sensor_msgs::PointCloud2 depth_w;
+
+    Eigen::Matrix4d T_b2w;
+    T_b2w = Eigen::Matrix4d::Identity();
+    int fc = estimator.frame_count;
+    T_b2w.block<3, 3>(0, 0) = estimator.Rs[fc];
+    T_b2w.block<3, 1>(0, 3) = estimator.Ps[fc];
+
+    Eigen::Matrix4d T_c2b;
+    T_c2b = Eigen::Matrix4d::Identity();
+    T_c2b.block<3, 3>(0, 0) = estimator.ric[0];
+    T_c2b.block<3, 1>(0, 3) = estimator.tic[0];
+
+    Eigen::Matrix4d T_c2w = T_b2w*T_c2b;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr depth_pcl(new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr depth_tf_pcl(new pcl::PointCloud<pcl::PointXYZI>());
+
+    pcl::fromROSMsg(_depth, *depth_pcl);
+    pcl::transformPointCloud(*depth_pcl, *depth_tf_pcl, T_c2w);
+    depth_w = Utility::cloud2msg(*depth_tf_pcl,"odom");
+
+    return depth_w;
+}
+
+void pubDepthPointCLoud(const sensor_msgs::PointCloud2 &depth_pointcloud, const double t)
+{
+    std_msgs::Header header;
+    header.frame_id = "odom";
+    header.stamp = ros::Time(t);
+    pub_depth_track.publish(depth_pointcloud);
 }

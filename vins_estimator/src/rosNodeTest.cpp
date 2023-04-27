@@ -20,6 +20,7 @@
 #include "estimator/estimator.h"
 #include "estimator/parameters.h"
 #include "utility/visualization.h"
+#include <pcl/common/io.h>
 
 Estimator estimator;
 
@@ -27,6 +28,7 @@ queue<sensor_msgs::ImuConstPtr> imu_buf;
 queue<sensor_msgs::PointCloudConstPtr> feature_buf;
 queue<sensor_msgs::ImageConstPtr> img0_buf;
 queue<sensor_msgs::ImageConstPtr> img1_buf;
+queue<sensor_msgs::PointCloud2ConstPtr> depth_buf;
 std::mutex m_buf;
 
 
@@ -41,6 +43,13 @@ void img1_callback(const sensor_msgs::ImageConstPtr &img_msg)
 {
     m_buf.lock();
     img1_buf.push(img_msg);
+    m_buf.unlock();
+}
+
+void depth_callback(const sensor_msgs::PointCloud2ConstPtr &depth_msg)
+{
+    m_buf.lock();
+    depth_buf.push(depth_msg);
     m_buf.unlock();
 }
 
@@ -67,12 +76,26 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
     return img;
 }
 
+sensor_msgs::PointCloud2 getPCLFromMsg(const sensor_msgs::PointCloud2ConstPtr &depth_msg)
+{
+    sensor_msgs::PointCloud2 depth;
+    depth.header = depth_msg->header;
+    depth.height = depth_msg->height;
+    depth.width = depth_msg->width;
+    depth.is_bigendian = depth_msg->is_bigendian;
+    depth.point_step = depth_msg->point_step;
+    depth.row_step = depth_msg->row_step;
+    depth.data = depth_msg->data;
+
+    return depth;
+}
+
 // extract images with same timestamp from two topics
 void sync_process()
 {
     while(1)
     {
-        if(STEREO)
+        if(STEREO && !USE_DEPTH)
         {
             cv::Mat image0, image1;
             std_msgs::Header header;
@@ -83,12 +106,12 @@ void sync_process()
                 double time0 = img0_buf.front()->header.stamp.toSec();
                 double time1 = img1_buf.front()->header.stamp.toSec();
                 // 0.003s sync tolerance
-                if(time0 < time1 - 0.003)
+                if(time0 < time1 - 0.003 )
                 {
                     img0_buf.pop();
                     printf("throw img0\n");
                 }
-                else if(time0 > time1 + 0.003)
+                else if(time0 > time1 + 0.003 )
                 {
                     img1_buf.pop();
                     printf("throw img1\n");
@@ -107,6 +130,52 @@ void sync_process()
             m_buf.unlock();
             if(!image0.empty())
                 estimator.inputImage(time, image0, image1);
+        }
+        else if(STEREO && USE_DEPTH)
+        {
+            cv::Mat image0, image1;
+            sensor_msgs::PointCloud2 depth;
+
+            std_msgs::Header header;
+            double time = 0;
+            m_buf.lock();
+            if (!img0_buf.empty() && !img1_buf.empty() && !depth_buf.empty())
+            {
+                double time0 = img0_buf.front()->header.stamp.toSec();
+                double time1 = img1_buf.front()->header.stamp.toSec();
+                double time2 = depth_buf.front()->header.stamp.toSec();
+                // 0.003s sync tolerance
+                if(time0 < time1 - 0.003 || time0 < time2 - 0.003)
+                {
+                    img0_buf.pop();
+                    printf("throw img0\n");
+                }
+                else if(time0 > time1 + 0.003 || time1 < time2 - 0.003)
+                {
+                    img1_buf.pop();
+                    printf("throw img1\n");
+                }
+                else if(time0 > time2 + 0.003 || time1 > time2 + 0.003)
+                {
+                    depth_buf.pop();
+                    printf("throw depth\n");
+                }
+                else
+                {
+                    time = img0_buf.front()->header.stamp.toSec();
+                    header = img0_buf.front()->header;
+                    image0 = getImageFromMsg(img0_buf.front());
+                    img0_buf.pop();
+                    image1 = getImageFromMsg(img1_buf.front());
+                    img1_buf.pop();
+                    depth = getPCLFromMsg(depth_buf.front());
+                    depth_buf.pop();\
+                    //printf("find img0 and img1\n");
+                }
+            }
+            m_buf.unlock();
+            if(!image0.empty())
+                estimator.inputImage(time, image0, image1, depth);
         }
         else
         {
@@ -257,9 +326,14 @@ int main(int argc, char **argv)
     ros::Subscriber sub_feature = n.subscribe("/feature_tracker/feature", 2000, feature_callback);
     ros::Subscriber sub_img0 = n.subscribe(IMAGE0_TOPIC, 100, img0_callback);
     ros::Subscriber sub_img1;
+    ros::Subscriber sub_depth;
     if(STEREO)
     {
         sub_img1 = n.subscribe(IMAGE1_TOPIC, 100, img1_callback);
+    }
+    if(USE_DEPTH)
+    {
+        sub_depth = n.subscribe(DEPTH_TOPIC, 100, depth_callback);
     }
     ros::Subscriber sub_restart = n.subscribe("/vins_restart", 100, restart_callback);
     ros::Subscriber sub_imu_switch = n.subscribe("/vins_imu_switch", 100, imu_switch_callback);
